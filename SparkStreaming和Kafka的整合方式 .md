@@ -9,13 +9,13 @@
 当处理数据的job启动的时候，Kafka的simple consumer api读取确定好的kafka中的offset范围（就是从文件系统中读文件）
 
 这种方法，与第一种方法相比的优势：
-（一）简单的并行度
+* （一）简单的并行度
 sparkstreaming会创建和kafka分区一样多的RDD分区来消费，这样的话，所有的节点都会从kafka并行的读取数据。
 Kafka分区和RDD分区是一对一的关系，这样更便于理解和优化。
-（二）高效
+* （二）高效
 第一种方法，为了达到零数据丢失，要写WAL，这样数据存了两份，一份在kafka，一份在WAL中，这是不高效的。第二种方法，不需要receiver，因此不需要WAL，
 只要kafka中有足够的消息，消息就能从kafka中恢复处理。
-（三）Exactly Once语义
+* （三）Exactly Once语义
 第一种方法，使用kafka的high level api，将消费的offset存储在zookeeper中。这种方法可以保证数据不会丢失，但是数据可能会被重复消费，因为spark真正接收到的数据可能和zookeeper中的offset不一致。
 第二种方法，使用simple kafka api，不使用zookeeper，offset是通过sparkstreaming的checkpoint来记录的，这样就消除了sparkstreaming和kafka（或者zookeeper）之间的不一致性，此时，sparkstreaming不会丢失数据。如何保证 Exactly Once呢
 （1）幂等操作
