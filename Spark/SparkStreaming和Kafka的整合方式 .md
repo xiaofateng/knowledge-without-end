@@ -38,6 +38,8 @@ dstream.foreachRDD { (rdd, time) =>
 
 注意，第二种方法，不会把offset写到zookeeper中，所以，基于zookeeper的kafka监控工具都失效了，然而，你可以在每个batch中访问offset，更新到zookeeper中。
 
+**第二种方法使用checkpoint保存数据，当程序代码改变时，会产生问题，解决方法是offset保存在zookeeper中。
+**
 当你启动程序消费kafka的数据的时候，默认情况下，第二种方法会从最近的offset开始消费，你也可以通过auto.offeset.reset设置成	smallest，这样它就会从最小的offset开始消费。
 与第二种方法相关的配置是saprk.streaming.kafka.*
 重要的一个配置是，spark.streaming.kafka.maxRatePerPartition，表示，在每个kafka 分区中，被direct api读取的数据的最大速度。
