@@ -24,7 +24,8 @@ Kafka分区和RDD分区是一对一的关系，这样更便于理解和优化。
 
 官方方案：
 
-```dstream.foreachRDD { (rdd, time) =>
+```scala
+dstream.foreachRDD { (rdd, time) =>
   rdd.foreachPartition { partitionIterator =>
     val partitionId = TaskContext.get.partitionId()
     val uniqueId = generateUniqueId(time.milliseconds, partitionId)
