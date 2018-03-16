@@ -3,18 +3,18 @@
 
 Hyperledger Fabric的源码和镜像下载非常简单，只需要执行下面一个命令：
 
-```curl -sSL https://goo.gl/6wtTN5 | bash -s 1.1.0-rc1
-```
+` curl -sSL https://goo.gl/6wtTN5 | bash -s 1.1.0-rc1
+`
 上面的命令，是执行下面的脚本
 https://github.com/hyperledger/fabric/blob/master/scripts/bootstrap.sh
 
 上面脚本里面的内容就是下载Fabric源码：
--          cryptogen
--         configtxgen
--         configtxlator
--         peer
--         orderer
--         fabric-ca-client
+- cryptogen
+- configtxgen
+- configtxlator
+- peer
+- orderer
+- fabric-ca-client
 上面的代码，将放到当前目录的bin目录下面。
 
 并且下载下面的镜像：
