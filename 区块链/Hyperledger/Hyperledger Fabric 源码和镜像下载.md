@@ -5,6 +5,7 @@ Hyperledger Fabric的源码和镜像下载非常简单，只需要执行下面�
 
 ` curl -sSL https://goo.gl/6wtTN5 | bash -s 1.1.0-rc1
 `
+
 上面的命令，是执行下面的脚本
 https://github.com/hyperledger/fabric/blob/master/scripts/bootstrap.sh
 
