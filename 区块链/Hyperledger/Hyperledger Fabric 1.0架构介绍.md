@@ -111,12 +111,87 @@ Nodes是blockchain的通信实体。一个"node" 仅仅是一个逻辑上的功�
 * Ordering-service-node or orderer:
 
  运行实现了分发保证的通信服务，例如atomic 或者 total order 的广播.
-#### 1.3.1. Client
-The client represents the entity that acts on behalf of an end-user. It must connect to a peer for communicating with the blockchain. The client may connect to any peer of its choice. Clients create and thereby invoke transactions.
+#### 1.3.1. Client（客户端）
+客户端为了和blockchain通信，必须和peer连接。 The client may connect to any peer of its choice. 客户端创建，并从而invoke(调用) transactions.
 
-As detailed in Section 2, clients communicate with both peers and the ordering service.
+**第二章节会详细介绍, 客户端和 peers、 ordering service都会通信。**
+
+#### 1.3.2. Peer
+一个 peer 从ordering service那里，以block的形式，接收有序的state更新。并且维护state和ledger。
+
+Peers 可以同时担当一个特殊的角色endorser。endorsing peer 的特殊功能是针对特定的chaincode，包含在一个transaction被提交前，对它背书、认可。 **每个chaincode都可以指定endorsement policy（背书策略）** （背书策略是引用一组endorsing peers的）。 
+
+策略定义了一个有效transaction endorsement(一般是一组endorsers的签名)的充分必要条件，二三章节会详细介绍这点。 **在install Chaincode的部署transactions的特殊情况下，（部署）背书策略被指定为System Chaincode的认可策略。**
+
+#### 1.3.3. Ordering service nodes (Orderers)
+Orderers 组成了 ordering service, 它提供可靠的通信网络。 Ordering service 可以用不同的方式实现: 中心化的服务(主要用户开发和测试) 、分布式的方式（用来应对不同的网络和节点的容错性）。
+
+**Ordering service为clients 和 peers 提供一个共享的通信 channel， 提供一个包含transaction的消息的广播服务。** Clients 连接到 channel，并且可以在该Channel上广播消息，然后将消息传递给所有peers。 Channel 支持所有消息的原子分发（有序分发）。 换而言之, channel 对所有连接到它的peers，发送相同的、商业逻辑上有序的消息。 **这种原子性的通信保证，也叫做全序广播, 原子广播, 或者分布式系统下的共识机制（我们通常都叫做共识机制）
+。**
+通信的消息，就是会包含在blockchain state中的候选transaction。
+
+**Partitioning (ordering service channels)**
+ Ordering service 可以支持多个channels ，就像发布-订阅消息系统一样。 Clients 可以连接到一个指定的channel，然后发送消息和获取到达的消息。 Channels可以被看做 partitions - 连接到一个Channel的Client不知道其他Channel的存在，但client可能连接到多个Channel。
+ 
+尽管Fabric v1中的ordering service 的实现支持多个channels, 为了简化介绍，本文后面的内容，我们假设 ordering service 由一个单独的channel/topic组成。
+
+**Ordering service API** 
+Peers通过ordering service提供的接口，连接到ordering service提供的Channel。Ordering service API 由两个基本操作组成(更通用的异步事件):
+
+* `broadcast(blob)`: client 调用它来广播一条任意的消息块，在Channel上传播。
+* `deliver(seqno, prevhash, blob)`: Ordering service 在peer上调用这个接口，使用指定的非负整数序列（seqno）和最近交付的的blob（可以理解为操作transaction）的hash（prevhash）来发送消息blob。换而言之, 它是ordering service的输出event。deliver() 有时在pub-sub 系统中也叫做 notify() ，或者在 BFT 系统中叫做commit() 。
 
 
+**通常情况下，为了效率的提升, ordering service 会对 blobs 分组（分批次），然后在一个单独的deliver事件中输出blocks，而不是输出每个独立的transactions（也就是blobs）。**在这种情况下，ordering service必须在每个block中，强加和传达一个确定的blobs的顺序。每个block中的blobs的个数可以被ordering service 动态指定。
+
+在下文中，为了便于表达，我们定义订ordering service的属性（本小节的其余部分），并解释transaction endorsement的工作流程（第2节）（假设每个deliver事件有一个blob的情况下，解释的工作流）。 根据上面提到的一个block的blob的确定性排序，工作流的解释很容易扩展到Block。
+
+**Ordering service 属性**
+
+Ordering service 有如下的保证:
+
+* 安全性（一致性保证）。尽管peers会断开连接或者宕机，但是它们会重新连接和启动。除非某些客client（或者peer）实际调用广播（blob），否则不发送 blob，并且最好每个Channel的blob只发送一次。此外, `deliver()` 事件包含上一次`deliver()` 事件（`prevhash`）数据的加密hash。`prevhash`是 序列号为`seqno-1`的`deliver()` 事件参数的加密hash。 这将在`deliver（`）事件之间建立hash chain，用于帮助验证ordering service输出的完整性，后面的第4节和第5节中会介绍。第一个`deliver()` 事件的特殊情况下, `prevhash` 有一个默认值。
+
+* Liveness (delivery 保证)。 Liveness保证是由具体的ordering service实现达到的。准确的保证需要依赖网络和节点的容错性。
+## 2. Transaction endorsement的基本工作流
+下面我们概要介绍一下transaction的high-level请求。
+
+注意：下面的协议没有假设所有的transactions都是确定的, 也就是说，它允许不确定的transactions。
+
+### 2.1. client 创建一个 transaction 并且发送到它选择的endorsing peers
+为了调用transaction, client 发送一个 PROPOSE 消息到它选择的一组endorsing peers(可能并不是同时 - 见 2.1.2. 和 2.3.节)。**对于指定chaincodeID的endorsing peers组，client通过peer得到，对方又通过endorsement policy发现endorsing peers(详见3章节)。** 例如, transaction 可以发送给一个指定chaincodeID的所有的endorsers。 这就是说, 一些endorsers 可以是offline的, 其它的可能反对并选择不支持transaction 。 发出Submitting 的client 会去满足可用的endorsers的政策表达 。
+
+下面, 我们首先详细介绍PROPOSE消息格式，然后讨论submitting client和endorsers之间可能的交互模式。
+#### 2.1.1. PROPOSE 消息格式
+一个PROPOSE的消息格式是：`<PROPOSE,tx,[anchor]>`, `tx` 是必须的 `anchor` 是可选的参数。下面详细介绍：
+
+* `tx=<clientID,chaincodeID,txPayload,timestamp,clientSig>`
+
+`clientID`是submitting client的`ID`,
+`chaincodeID` 指的是transaction所属的 chaincode
+`txPayload` 是包含 submitted transaction本身的有效负载。
+`timestamp` 是由客户维护的单调递增（对于每个新transaction）整数。
+`clientSig` 是client 端的签名。
+
+txPayload的细节，在调用transaction和部署transaction之间有所不同。
+
+对于调用transaction，txPayload将由2个字段组成：
+`txPayload = <operation, metadata>`, 
+`operation` 是指 chaincode 操作(函数) 和参数。
+`metadata` 是指和调用相关的属性。
+
+对于部署 transaction, txPayload 由3个字段组成：
+`txPayload = <source, metadata, policies>`,
+`source` 指的是chaincode的源码。
+`metadata` 指的是与 chaincode 和 application相关的属性。
+`policies` **包含与所有peer可访问的Chaincode有关的policies（政策），例如endorsement policies（背书政策）**。
+ **注意endorsement policies 不是部署 transaction中的txPayload提供的, `txPayload` 包含的是 endorsement policy ID 和它的参数(详见章节3)**
+
+* anchor 包含读取版本依赖关系，或更具体地说，key-version对（即，anchor是KxN的一个子集），它将`PROPOSE`请求绑定或“anchor”到KVS中指定版本的key（请参阅第1.2节）。 如果客户端指定anchor参数，则endorser仅在读取其本地KVS，并匹配anchor中的相应key的版本号时，才认可transaction（更多详细信息，请参见第2.2节）。
+
+tx的加密hash被所有节点用作唯一transaction标识符tid（即，`tid = HASH（tx）`）。 客户端将tid存储在内存中，并等待来自endorsing peers的响应。
+
+本文中有些名术语是基本等价的，像transactions和blobs，之所以没有统一为一个术语，是为了匹配上下文环境。
 本文主要参考
 https://github.com/hyperledger/fabric/blob/release-1.1/proposals/r1/Next-Consensus-Architecture-Proposal.md
 
