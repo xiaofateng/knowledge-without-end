@@ -191,7 +191,7 @@ txPayload的细节，在调用transaction和部署transaction之间有所不同�
 
 tx的加密hash被所有节点用作唯一transaction标识符tid（即，`tid = HASH（tx）`）。 客户端将tid存储在内存中，并等待来自endorsing peers的响应。
 
-#####2.1.2. Message 模式
+##### 2.1.2. Message 模式
 
 client定与endorsers的交互顺序。 例如，client通常会发送`<PROPOSE，tx>`（即没有anchor参数）给一个单独的endorser，然后client可以生成版本依赖关系（anchor），以便client稍后可以将其用作PROPOSE消息的参数给其它endorser。 作为另一个例子，client可以直接发送`<PROPOSE，tx>`（没有anchor）给所选的所有endorser。 不同的通信模式都可以，client可以自由选择这些模式（另见2.3节）。
 
