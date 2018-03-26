@@ -93,6 +93,7 @@ message Register {
 在`events.proto`中定义了一种服务，使用单一方法接收注册event的stream(流)，并返回client,当 event 发生时读取事件的stream(流)。
 
 欢迎加入区块链技术交流QQ群 694125199
+
 更多区块链知识：
 https://github.com/xiaofateng/knowledge-without-end/tree/master/区块链/Hyperledger
 
