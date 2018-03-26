@@ -14,6 +14,7 @@ type TransactionResult struct {
 	ErrorCode      uint32
 	Error          string
 	ChaincodeEvent *ChaincodeEvent
-}```
+}
+```
 
 
