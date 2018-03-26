@@ -246,7 +246,7 @@ Submitting client 等到它接受到足够的消息（ "enough" messages） 和 
 
 * 如果`blob.endorsement`的endorsement policy验证失败，则该transaction无效，并且该Peer在PeerLedger的bitmask（位掩码）中将transaction标记为0。 要注意无效transaction不会改变state。
 
-![](media/transactionFlow.jpg)
+![](media/transactionFlow.png)
 
 
 # 3. Endorsement policies
