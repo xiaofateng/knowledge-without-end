@@ -248,6 +248,8 @@ Submitting client 等到它接受到足够的消息（ "enough" messages） 和 
 
 ![](media/transactionFlow.png)
 
+图1. transaction 流程图
+
 
 # 3. Endorsement policies
 
@@ -256,9 +258,52 @@ Endorsement policy可以参数化，这些参数可以由部署transaction指定
 ## 3.2. endorsement policy的Transaction 评估 
  对于部署transaction，根据系统范围的策略（例如，从system chaincode）获得endorsement（背书、认可）。
 
+endorsement policy指的是一些变量，可能下面几种：
+
+*  keys或与Chaincode相关的身份（Chaincode的metadata元数据中可以找到），例如一组endorsers;
+* Chaincode的其它metadata数据;
+*  `endorsement`的元素 和 `endorsement.tran-proposal`;
+
+* 其它可能的内容。
+
+上面的列表是，是按照复杂性来排序的。也就是说，节点的keys和身份策略相对简单。
+
+**对endorsement policy的评估必须是确定性的。 endorsement应由每个peer在本地进行评估，以便peer不需要与其他peer交互，但所有正确的peer以同样的方式评估endorsement policy。（具体点什么意思呢？endorsement policy 不应该是client端去评估的么？）**
+
+## 3.3 endorsement policies例子
+predicate（断言语句）可能包含逻辑表达式，根据表达式评估为TRUE或FALSE。 通常情况下，该条件将使用由Chaincode发布的transaction调用发出的数字签名（digital signatures）。
+
+假设Chaincode指定endorser集合`E = {Alice，Bob，Charlie，Dave，Eve，Frank，George}`。 一些示例策略如下：
+
+* 来自E的所有成员的，同一份`tran-proposal`中的有效签名。
+
+* E.任何一个成员的有效签名。
+
+* 一组满足条件的peer的，同一个`tran-proposal`上的有效签名。
+如条件：`(Alice OR Bob) AND (any two of: Charlie, Dave, Eve, Frank, George)`，
+* 7个endorsers中的任何5个，在同一个`tran-proposal`上的签名。 （更一般地，对于有`n> 3f` endorsers的Chaincode，`n`endorsers中的任何`2f + 1`的有效签名，或者超过`（n + f）/ 2`endorsers的任何群组。
+* 假设endorsers有“权重、（或者叫做股权）”，如`{Alice = 49，Bob = 15，Charlie = 15，Dave = 10，Eve = 7，Frank = 3，George = 1}` 总权重（股权）为100：该政策要求拥有大部分股权（权重）的组合（即，合并股权严格超过50的组合）的有效签名。
+
+* 前面示例条件中的股权（权重）的分配可以是静态的（固定在Chaincode的元数据中）或动态的（例如，取决于Chaincode的状态并且在执行期间可以被修改）。
+
+* 来自（Alice或Bob）的关于tran-proposal1的有效签名，以及来自（Charlie，Dave，Eve，Frank，George的任意两个）的关于tran-proposal2的有效签名。其中tran-proposal1和tran-proposal2仅在它们的endorsing peers 和state更新上不同。
+
+这些政策的有用程度，取决于应用程序。解决方案针对endorsers的失败，或行为不当，的理想弹性（即处理方案）。
+
+# 4 (v1后续版本的新功能). Validated ledger and PeerLedger checkpointing (pruning)
+现在版本的ledger中，有效和失效的transaction都存在。后续版本中将推出Validated ledger，仅存储有效的transaction。
+checkpointing功能将配合Validated ledger一起使用，帮忙替换掉无效的transaction，减少空间占用。
 
 
-本文中有些名术语是基本等价的，像transactions和blobs，之所以没有统一为一个术语，是为了匹配上下文环境。
-本文主要参考
+
+本文中有些名术语是基本等价的，像transactions和blobs，之所以没有统一为一个术语，是为了匹配上下文环境。文中有些疑问的地方，加了问好，明白了后会更新。
+
+欢迎加入区块链技术交流QQ群 694125199
+
+本文主要根据官方架构文档，翻译而来
 https://github.com/hyperledger/fabric/blob/release-1.1/proposals/r1/Next-Consensus-Architecture-Proposal.md
+
+本文地址：
+https://github.com/xiaofateng/knowledge-without-end/blob/master/区块链/Hyperledger/Hyperledger%20Fabric%201.0架构介绍.md
+
 
