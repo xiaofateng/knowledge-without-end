@@ -205,6 +205,56 @@ client定与endorsers的交互顺序。 例如，client通常会发送`<PROPOSE�
 
 回想一下，state由key/value（k / v）对组成。 所有k / v条目都是版本化的。也就是说，每个条目都包含有序的版本信息，每次更新时存储在key下的version（版本）都会增加。 执行transaction的peer记录Chaincode访问的所有、读取或写入的k / v对。但peer尚未真正的更新其state。 进一步来说：
 
+* 在endorsing peer执行transaction之前，给定一个 state `s` ,对于transaction读的每一个key `k` , `(k,s(k).version)` 对被加到`readset`中。
+* 另外, 对于transaction的把每一个key `k`修改成新值 `v'`  `(k,v')` 对被加到`writeset`中。 或者，`v'`可能是新值到先前值`（s（k）.value）`的增量。
+
+如果client在`PROPOSE`消息中指定了anchor，则client指定的anchor必须等于在模拟transaction时，由endorsing peer生成的`readset`。
+
+**``tran-proposal``是什么意思？？？**
+然后，peer内部`tran-proposal`(转发proposal)（也可能是`tx`）到它endorses transaction的逻辑部分，称为endorsing逻辑。 默认情况下，peer的endorsing逻辑，接受`tran-proposal`，并简单对`tran-proposal`签名。 然而，endorsing逻辑可以按照功能任意定义的，例如使用`tran-proposal`和`tx`与 legacy systems交互， 并使用它们判断是否endorse a transaction（是否认可一个交易）。
+
+如果endorsing逻辑决定endorse a transaction了（认可一个交易）, 它发送 `<TRANSACTION-ENDORSED, tid, tran-proposal,epSig>` 消息 到 submitting client(`tx.clientID`):
+
+* `tran-proposal := (epID,tid,chaincodeID,txContentBlob,readset,writeset)`,
+
+`txContentBlob` 是 chaincode/transaction 特定信息。 目的是将 `txContentBlob` 用作 `tx` 的一些表示(例如 `txContentBlob=tx.txPayload`)。
+
+* `epSig` 是endorsing peer's 对`tran-proposal`的签名。
+
+否则，如果endorsing逻辑拒绝endorse该事务，则endorser可以向submitting client发送消息（`TRANSACTION-INVALID，tid，REJECTED`）。请注意，在此步骤中endorser不会改变它的state。
+### 2.3. Submitting client 收集一个transaction的 endorsement ，并通过ordering service把它广播出去
+Submitting client 等到它接受到足够的消息（ "enough" messages） 和 statements的签名 (`TRANSACTION-ENDORSED, tid, *, *`) 才确定transaction proposal 是 endorsed（被认可的）。 像2.1.2节描述的那样, 这里可能调用一个或者多个 round-trips 和endorsers进行交互。
+
+“engouh”的确切数量取决于chaincode的 endorsement policy（另见第3节）。 如果endorsement policy 得到满足，transaction就得认可（同意或者批准）; 
+
+请注意，它尚未提交。 从endorsing peers收集到的签名的`TRANSACTION-ENDORSED`消息，建立了由endorsement认可的transaction。
+
+如果submitting client 没有设法收集transaction proposal的endorsement，它会放弃此transaction，并选择稍后重试。
+
+对于有效认可的transaction，我们现在开始使用ordering service。 submitting client 使用广播（blob）调用ordering service，其中`blob =endorsement`（**这里什么意思？？？**）。 如果client没有直接调用ordering service的能力，它可能通过其选择的peer代理它的广播。 该peer必须被客户信任，它不会从endorsement中删除任何消息，否则transaction可能被视为无效。 但是请注意，代理peer可能不会编造有效的endorsement。
+
+### 2.4. Ordering service发送 transactions到peers
+
+当`deliver(seqno, prevhash, blob)`event 发生，并且一个peer已将所有状态更新应用于序列号低于seqno的blob时，peer执行以下操作：
+
+* 它根据chaincode的策略检查 ` blob.endorsement` 是否有效。(`blob.tran-proposal.chaincodeID`) 
+* 通常情况下，它还验证依赖性（`blob.endorsement.tran-proposal.readset`）是否违反了（并发版本冲突检查）。 在更复杂的使用案例中，endorsement中的tran-proposal 字段可能有所不同，在这种情况下，endorsement policy（背书政策，第3部分）规定了state如何evolves（更新，发展）。
+
+根据为状态更新，选择的一致性属性或“隔离保证”，可以用不同方式验证依赖关系。 除非chaincode 的 endorsement policy（背书策略）指定了不同的认证，否则可串行化是默认的隔离保证。 **可以通过要求与`readset`中的每个key相关联的版本,等于该key在state中的版本（也就是执行transaction前的数据和真正提交时候再次读取的数据，应该是一致的，这说明在这期间，没有其它的transaction修改这个值）**,以及拒绝不满足该要求的tranaction来提供可串行化性。
+
+* 如果所有这些检查都通过，transaction被视为有效或committed。 在这种情况下，peer在PeerLedger的bitmask（位掩码）中将transaction标记为1，将`blob.endorsement.tran-proposal.writeset`应用于区块链的state（如果`tran-proposal`是相同的，否则endorsement policy 逻辑定义了获取`blob.endorsement`的函数）。
+
+* 如果`blob.endorsement`的endorsement policy验证失败，则该transaction无效，并且该Peer在PeerLedger的bitmask（位掩码）中将transaction标记为0。 要注意无效transaction不会改变state。
+
+
+
+# 3. Endorsement policies
+
+## 3.1. Endorsement policy 规范
+Endorsement policy可以参数化，这些参数可以由部署transaction指定。
+## 3.2. endorsement policy的Transaction 评估 
+ 对于部署transaction，根据系统范围的策略（例如，从system chaincode）获得endorsement（背书、认可）。
+
 
 
 本文中有些名术语是基本等价的，像transactions和blobs，之所以没有统一为一个术语，是为了匹配上下文环境。
