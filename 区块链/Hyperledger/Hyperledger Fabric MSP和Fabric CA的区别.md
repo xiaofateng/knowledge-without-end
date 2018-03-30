@@ -21,3 +21,9 @@ MSP是Membership Service Provider - 是可插拔的接口，它用于支持各�
 https://github.com/hyperledger/fabric-samples/tree/master/fabric-ca
 
 
+欢迎加入区块链技术交流QQ群 694125199
+
+更多区块链知识：
+https://github.com/xiaofateng/knowledge-without-end/tree/master/区块链/Hyperledger
+
+
