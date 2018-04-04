@@ -1,8 +1,10 @@
 # 简介
 
 MSP的作用，不仅仅在于列出谁是网络参与者或Channel成员。 MSP可以确定，成员在MSP所代表的Org（trust domain）（例如，MSP管理员，组织细分成员）中扮演的特定角色。 它将MSP的配置通告给，相应组织的成员参与的所有Channel（以MSP Channel的形式）。 Peers, orderers 和 clients还维护本地MSP实例（也称为 Local MSP），以在channel环境之外验证其组织成员的消息。 此外，MSP可以识别已被吊销的身份列表。
-
 也就是MSP可以分为：local 和 channel MSPs
+
+对于MSP的简单理解：
+提供identity（身份）到（organization）组织的映射 - 它确定如何将peer分配给特定组织中的特定角色，并因此获得对区块链资源的适当访问。 
 
 **organizations 最重要的是，他们在单独的一个MSP下管理其成员。** 请注意，这与在X.509证书中定义的organization概念不同，我们稍后会讨论。
 
