@@ -40,7 +40,7 @@ Local MSP仅在其应用的 节点或用户 的文件系统上定义。 因此�
  
 但是，由于Channel MSP可用于Channel中的所有节点，因此它们在其配置中的Channel中逻辑定义一次。 **但是，Channel MSP在channel中的每个节点的文件系统上,实例化并且通过共识保持同步。** 因此，虽然每个节点的本地文件系统上存在每个channel MSP的副本，但逻辑上，channel MSP驻留在channel或网络上并由其维护。
 
-管理员B使用`RCA1`颁发的，并存储在其local MSP中的身份连接到peer（用户、管理员也有local MSP）。 当B尝试在peer上安装智能合同时，peer检查其local MSP `ORG1-MSP`，以验证B的身份确实是`ORG1`的成员。 成功验证将允许安装命令成功完成。 随后，B希望实例化该channel上的智能合约。 由于这是Channel操作，Channel中的所有组织都必须同意。 因此，peer必须先检查Channel的MSP，然后才能成功提交该命令。 （其他事情也必须发生，但现在要专注于上述内容。）
+上图中，管理员B使用`RCA1`颁发的，并存储在其local MSP中的身份连接到peer（用户、管理员也有local MSP）。 当B尝试在peer上安装智能合同时，peer检查其local MSP `ORG1-MSP`，以验证B的身份确实是`ORG1`的成员。 成功验证将允许安装命令成功完成。 随后，B希望实例化该channel上的智能合约。 由于这是Channel操作，Channel中的所有组织都必须同意。 因此，peer必须先检查Channel的MSP，然后才能成功提交该命令。 （其他事情也必须发生，但现在要专注于上述内容。）
 
 
 # MSP Levels
@@ -51,7 +51,7 @@ channel 和 local MSP之间的分割反映了，组织管理其本地资源（�
 
 ![](media/MSPLevel.png)
 
-peer 和 orderer的MSP是本地的，而Channel的MSP**（包括网络配置Channel）**在该Channel的所有参与者之间共享。 在上图中，网络配置Channel由ORG1管理，但另一个应用程序Channel可由ORG1和ORG2管理。 
+peer 和 orderer的MSP是本地的，而Channel的MSP **（包括网络配置Channel）** 在该Channel的所有参与者之间共享。 在上图中，网络配置Channel由ORG1管理，但另一个应用程序Channel可由ORG1和ORG2管理。 
 
 peer是ORG2的成员，并由ORG2管理，而ORG1管理orderer。 ORG1信任来自RCA1的身份，而ORG2信任来自RCA2的身份。 请注意，这些是管理身份，反映了谁可以管理这些组件。 所以当ORG1管理网络时，ORG2.MSP确实存在于网络定义中。
 
@@ -59,7 +59,7 @@ peer是ORG2的成员，并由ORG2管理，而ORG1管理orderer。 ORG1信任来�
 * Network MSP：网络配置通过定义参与者组织MSPs，来定义网络中的成员。同时定义这些成员中哪些成员，有权执行管理任务（例如，创建Channel）
 
 
-* Channel MSP：Channel分开维护其成员的MSP非常重要。Channel提供了一组特定的组织之间的私人通信，这些组织又对其进行管理控制。**在该Channel的MSP上下文中的Channel policies定义谁能够参与Channel上的某些操作，例如添加组织或实例化chaincodes。**请注意，管理Channel的权限与管理网络配置Channel（或任何其他频道）的权限之间没有必要的关系。管理权限存在于正在管理的范围内（除非规则已另行编写 - 请参阅下面关于ROLE属性的讨论）。
+* Channel MSP：Channel分开维护其成员的MSP非常重要。Channel提供了一组特定的组织之间的私人通信，这些组织又对其进行管理控制。 **在该Channel的MSP上下文中的Channel policies定义谁能够参与Channel上的某些操作，例如添加组织或实例化chaincodes。** 请注意，管理Channel的权限与管理网络配置Channel（或任何其他频道）的权限之间没有必要的关系。管理权限存在于正在管理的范围内（除非规则已另行编写 - 请参阅下面关于ROLE属性的讨论）。
 
 
 * Peer MSP：此Local MSP在每个peer的文件系统上定义，并且每个peer都有一个MSP实例。从概念上讲，它执行的功能与Channel MSP完全相同，限制条件是它仅用于定义它的peer上。
